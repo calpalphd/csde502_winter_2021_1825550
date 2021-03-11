@@ -1,0 +1,148 @@
+---
+title: "CSDE 502 Winter 2021, Assignment 9"
+author: "[1825550, Callie Freitag](mailto:freitagc@uw.edu)"
+output: 
+    bookdown::html_document2:
+        number_sections: true
+        self_contained: true
+        code_folding: hide
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+    pdf_document:
+        number_sections: true
+        toc: true
+        fig_cap: yes
+        keep_tex: yes
+urlcolor: blue 
+---
+
+```{r}
+library(captioner)
+require(readstata13)
+require(tidyverse)
+
+figure_nums <- captioner(prefix = "Figure")
+table_nums <- captioner(prefix = "Table")
+```
+
+___Explanation___:
+This assignment is intended to give you more practice delving into the Add Health data set and in manipulating additional variables. 
+
+___Instructions___: 
+
+1. Make sure your Rmd file has no local file system dependencies (i.e., anyone should be able to recreate the output HTML using only the Rmd source file).
+1. Make a copy of this Rmd file and add answers below each question. The code that generated the answers should be included, as well as the complete source code for the document.
+1. Change the YAML header above to identify yourself and include contact information.
+1. For any tables or figures, include captions and cross-references and any other document automation methods as necessary.
+1. Make sure your output HTML file looks appealing to the reader.
+1. Upload the final Rmd to your github repository.
+1. Download [`assn_id.txt`](http://staff.washington.edu/phurvitz/csde502_winter_2021/assignments/assn_id.txt) and include the URL to your Rmd file on github.com.
+1. Create a zip file from your copy of `assn_id.txt` and upload the zip file to the Canvas site for Assignment 9. ___The zip file should contain only the text file. Do not include any additional files in the zip file--everything should be able to run from the file you uploaded to github.com. Please use zip format and not 7z or any other compression/archive format.___
+
+
+#
+__Using the full household roster (you'll need to go back the full raw data source, [21600-0001-Data.dta](http://staff.washington.edu/phurvitz/csde502_winter_2021/data/21600-0001-Data.dta.zip)), create the following variables for each respondent. Document any decisions that you make regarding missing values, definitions, etc. in your narrative as well as in the R code.  Include a frequency tabulation and a histogram of each result.__
+
+Note to Phil: As I mentioned in my email, I couldn't get the code below to download and read in the file using the temporary directory system. So, I saved a copy locally and completed the exercise that way instead. 
+
+```{r, echo=T, results='hide'}
+##SELF-CONTAINED METHOD -- works to download, but can't read in file
+# temp <- Sys.getenv("TMPDIR")
+# 
+# dtaurl <- "http://staff.washington.edu/phurvitz/csde502_winter_2021/data/21600-0001-Data.dta.zip"
+# 
+# zip <- file.path(Sys.getenv("TMPDIR"), basename(dtaurl))
+# 
+# # dta file in $temp
+# dtafile <- tools::file_path_sans_ext(zip)
+# 
+# # check if the dta file exists
+# if(!file.exists(dtafile)){
+#     # if the dta file doesn't exist, check for the zip file
+#     if(!file.exists(zip)){ # check if the zip file exists, download if necessary
+#         curl::curl_download(url = dtaurl, destfile = zip) 
+#         }
+#     unzip(zipfile = zip, exdir = Sys.getenv("TEMP")) # unzip the downloaded zip file
+# }
+# 
+# # if the data set has not been read, read it in 
+# if(!exists("ahcomplete")){
+#     ahcomplete <- read.dta13(dtafile)
+# }
+# 
+# # lowercase column names
+# colnames(ahcomplete) %<>% str_to_lower()
+
+
+### read in data from local source
+data <- haven::read_dta("/Users/freitagc/Downloads/21600-0001-Data.dta")
+
+### check attributes of hh roster vars 
+attributes(data$H1HR3A)
+attributes(data$H1HR3B)
+attributes(data$H1HR3C)
+attributes(data$H1HR3D)
+attributes(data$H1HR3E)
+attributes(data$H1HR3F)
+attributes(data$H1HR3G)
+attributes(data$H1HR3H)
+attributes(data$H1HR3I)
+attributes(data$H1HR3J) #10th hh member
+attributes(data$H1HR3T) #20th hh member
+
+## check distribution of hh members
+summary(data$H1HR3C) #97 is 3rd quartile
+summary(data$H1HR3D) #97 is 3rd quartile
+summary(data$H1HR3E) #97 is 1st quartile
+summary(data$H1HR3J) #97 is 1st quartile 
+summary(data$H1HR3T) #96 is min -- refused/skipped
+```
+
+
+
+Then, I got stuck in the recoding variables process. I wanted to recode the household roster variables and set the skipped values to missing. I tried to follow the code from the course website and last week's answer key (using mutate_at for the first time! Thanks for that opportunity!). But, this code ends up setting EVERYTHING to NA. What's going on? 
+
+```{r, echo=T}
+#recode vars 
+hh <- data %>% select(contains("H1HR3"), AID) %>%
+            mutate_at(.vars = vars(-AID),
+                         list(
+                             ~case_when(
+                                 . == 96 ~ NA,
+                                 . == 97 ~ NA,
+                                 . == 98 ~ NA
+                             )
+                         ))
+
+head(hh)
+```
+
+
+##
+__Total number in household__
+
+##
+__Number of sisters__
+
+
+##
+__Number of brothers__
+
+
+##
+__Total number of siblings__
+
+
+#
+__What proportion of students live with two biological parents? Include the analysis in your R code.__
+
+
+#
+__Calculate the number of household members that are NOT biological mother, biological father, full brother or full sister. Create a contingency table and histogram for this variable.__
+
+## Source code
+```{r comment=''}
+cat(readLines(con = "csde502_2021_assignment09.Rmd"), sep = '\n')
+```
