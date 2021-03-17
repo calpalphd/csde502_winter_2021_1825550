@@ -1,0 +1,126 @@
+---
+title: "CSDE 502 Winter 2021, Assignment 10"
+author: "[1825550, Callie Freitag](mailto:freitagc@uw.edu)"
+output: 
+    bookdown::html_document2:
+        number_sections: true
+        self_contained: true
+        code_folding: hide
+        toc: true
+        toc_float:
+            collapsed: true
+            smooth_scroll: false
+    pdf_document:
+        number_sections: true
+        toc: true
+        fig_cap: yes
+        keep_tex: yes
+urlcolor: blue 
+---
+
+```{r, echo=F, warning=F, message=F}
+library(captioner)
+require(readstata13)
+require(tidyverse)
+require(kableExtra)
+
+figure_nums <- captioner(prefix = "Figure")
+table_nums <- captioner(prefix = "Table")
+
+dat <- read.table("/Users/Callie/Dropbox/CSDE502/Deaths_1x1_RepKorea.txt", skip=2, header=T)
+```
+
+# Introduction
+
+This short paper uses data from the [Human Mortality Database](https://mortality.org) to examine the gender and age distribution of mortality in the Republic of Korea (South Korea) from 2003-2018. I particularly focus on older adults (age 50+). 
+
+# Methods
+
+## Data 
+I use the "1x1" data (that is, mortality data stratified by one-year age groups and one-year intervals) from the [Republic of South Korea](https://kostat.go.kr/portal/eng) as provided in the [Human Mortality Database](https://mortality.org/cgi-bin/hmd/country.php?cntr=KOR&level=1). The data are also straified by binary gender. Detailed documentation on the data are available [here](https://mortality.org/hmd/KOR/InputDB/KORcom.pdf). 
+
+Because I focus on older adults, I filter the data to include only adults aged 50 and above. I create 5-year age groups stratified by gender. I then estimate the age-adjusted, gender-specific mortality rates by year (i.e. the proportion of deaths in that age group and year experienced by each gender). 
+ 
+```{r, echo=T, warning=F}
+#recode from character to numeric 
+dat$Age <- as.numeric(dat$Age)
+
+datsum <- dat %>% 
+    filter(Age >= 50) %>%
+    mutate(agegroup = case_when(
+        Age >= 50 & Age <=54 ~ "Age 50 to 54", 
+        Age >= 55 & Age <=59 ~ "Age 55 to 59", 
+        Age >= 60 & Age <=64 ~ "Age 60 to 64", 
+        Age >= 65 & Age <=69 ~ "Age 65 to 69", 
+        Age >= 70 & Age <=74 ~ "Age 70 to 74", 
+        Age >= 75 & Age <=79 ~ "Age 75 to 79", 
+        Age >= 80 & Age <=84 ~ "Age 80 to 84", 
+        Age >= 85 & Age <=89 ~ "Age 85 to 89",
+        Age >= 90 ~ "Age 90+"
+    )) %>%
+    group_by(agegroup, Year) %>%
+    summarize(female = sum(Female),
+              male = sum(Male), 
+              totaldeaths = sum(Total)) %>%
+    pivot_longer(cols = c(female, male),
+                 names_to = "gender", 
+                 values_to = "gender_strat_deaths") %>%
+    mutate(age_gender_deathrate = round(gender_strat_deaths/totaldeaths, 2))
+
+tbl_long <- datsum %>%
+    pivot_wider(id_cols = c("Year", "agegroup", "gender"),
+                names_from = "gender",
+                values_from = "age_gender_deathrate") 
+
+mean_females <- tbl_long %>% summarise(mean_fem = mean(female)) %>% summarize(mean_females = mean(mean_fem))
+
+mean_males <- tbl_long %>% summarise(mean_males = mean(male)) %>% summarize(mean_males = mean(mean_males))
+
+tbl_females <- tbl_long %>% 
+    #select(Year, agegroup, female) %>%
+    pivot_wider(id_cols = c("Year", "agegroup"),
+                names_from = "Year", 
+                values_from = c("female"))
+
+tbl_males <- tbl_long %>% 
+    #select(Year, agegroup, female) %>%
+    pivot_wider(id_cols = c("Year", "agegroup"),
+                names_from = "Year", 
+                values_from = c("male"))
+```
+
+## Analysis
+
+I find that men and women in South Korea have opposite age-specific mortality patterns over time. Based on the tables and figure below, I find that women are less likely to die in their early older adult years, whereas men make up the lionshare of deaths during those years. Conversely, women make up a higher share of deaths in later life, whereas men make up a lower share -- likely because there are fewer of them that have survived until that point. 
+
+Across age groups and years, men made up `r 100*round(mean_males, 2)` percent of deaths, while women made up `r 100*round(mean_females, 2)` percent. 
+
+
+```{r, echo=T}
+kable(tbl_females, caption = "**Female** Age-Specific Mortality Rates in South Korea")
+
+kable(tbl_males, caption = "**Male** Age-Specific Mortality Rates in South Korea")
+    
+```
+
+
+```{r, echo=T, fig.cap="Age and Gender-Specific Mortality Rates Among South Korean Older Adults, 2003-2018"}
+datsum %>% 
+    ggplot(aes(x=Year, y=age_gender_deathrate, color=agegroup)) + 
+    geom_line(size = 1, stat="identity") + 
+    facet_wrap(~gender) + 
+    scale_y_continuous(labels=scales::percent, name="Age-Specific Mortality Rate", breaks=c(seq(0,0.8,0.1)), limits=c(0,0.8,0.1))
+
+```
+
+# Discussion
+The results of my analysis are surprsing. I did not expect to see such stark gender differences in mortality. I wonder if this is because I estimated age- and gender-specific death rates as a proportion of all deaths (because this was the data available) rather than by proportion of the living population. 
+
+# Conclusions 
+My primary conclusion is that I would like to learn more about the data I used -- less than 1 week is not a lot of time to get to know data! I would not draw any conclusions from this analysis. 
+
+
+# Source code
+```{r comment=''}
+cat(readLines(con = "1825550_HW_10.Rmd"), sep = '\n')
+```
